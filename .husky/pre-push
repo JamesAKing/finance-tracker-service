@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+case "$branch" in
+  master|main)
+    echo "ERROR: Direct pushes to $branch are blocked."
+    echo "Create a feature branch and push that instead."
+    exit 1
+    ;;
+esac
