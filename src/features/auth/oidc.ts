@@ -1,7 +1,22 @@
 import * as client from "openid-client";
 import type { Config } from "../../config.ts";
+import type { UserIdentity } from "./user-repository.ts";
 
 export type OidcClient = client.Configuration;
+
+export type AuthFlow = {
+  state: string;
+  nonce: string;
+  codeVerifier: string;
+};
+
+export type LoginResult = {
+  identity: UserIdentity;
+  authSessionId: string | undefined;
+  idToken: string;
+};
+
+export type CodeExchange = (currentUrl: URL, flow: AuthFlow) => Promise<LoginResult>;
 
 export async function discoverOidc({ issuerUrl, clientId, clientSecret }: Config["oidc"]) {
   const issuer = new URL(issuerUrl);
@@ -17,4 +32,29 @@ export async function discoverOidc({ issuerUrl, clientId, clientSecret }: Config
       cause: error,
     });
   }
+}
+
+export function createCodeExchange(oidc: OidcClient): CodeExchange {
+  return async (currentUrl, flow) => {
+    const tokens = await client.authorizationCodeGrant(oidc, currentUrl, {
+      expectedState: flow.state,
+      expectedNonce: flow.nonce,
+      pkceCodeVerifier: flow.codeVerifier,
+      idTokenExpected: true,
+    });
+
+    const claims = tokens.claims();
+    if (!claims || !tokens.id_token) {
+      throw new Error("Token response had no ID token");
+    }
+    if (typeof claims.email !== "string") {
+      throw new Error("ID token has no email claim");
+    }
+
+    return {
+      identity: { issuer: claims.iss, subject: claims.sub, email: claims.email },
+      authSessionId: typeof claims.sid === "string" ? claims.sid : undefined,
+      idToken: tokens.id_token,
+    };
+  };
 }

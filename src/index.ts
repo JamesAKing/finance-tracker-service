@@ -1,7 +1,9 @@
 import createApp from "./app.ts";
 import { type Config, loadConfig } from "./config.ts";
 import { createDb, verifyConnection } from "./db/db.ts";
-import { discoverOidc, type OidcClient } from "./features/auth/oidc.ts";
+import { createCodeExchange, discoverOidc, type OidcClient } from "./features/auth/oidc.ts";
+import { createSessionRepository } from "./features/auth/session-repository.ts";
+import { createUserRepository } from "./features/auth/user-repository.ts";
 
 let config: Config;
 try {
@@ -33,7 +35,13 @@ const app = createApp({
   db,
   auth: {
     oidc,
+    exchangeCode: createCodeExchange(oidc),
+    users: createUserRepository(db),
+    sessions: createSessionRepository(db, {
+      maxLifespanSeconds: config.session.maxLifespanSeconds,
+    }),
     callbackUrl: new URL("/api/auth/callback", config.webOrigin).href,
+    webOrigin: config.webOrigin,
   },
 });
 
