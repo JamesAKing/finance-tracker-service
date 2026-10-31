@@ -24,3 +24,5 @@ export async function verifyConnection() {
 export const db = drizzle(url, {
   relations,
 });
+
+export type Database = typeof db;
