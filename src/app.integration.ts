@@ -1,0 +1,49 @@
+import assert from "node:assert/strict";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { after, before, describe, it } from "node:test";
+import { drizzle } from "drizzle-orm/node-postgres";
+import createApp from "./app.ts";
+import { db } from "./db/db.ts";
+import { relations } from "./db/relations.ts";
+
+// A client pointed at a port where nothing is listening
+const unreachableDb = drizzle("postgres://postgres:password@localhost:1/none", {
+  relations,
+});
+
+function listen(server: Server) {
+  const { port } = server.address() as AddressInfo;
+  return `http://localhost:${port}`;
+}
+
+describe("GET /api/health/ready (real database)", () => {
+  let healthyServer: Server;
+  let brokenServer: Server;
+
+  before(() => {
+    healthyServer = createApp({ db }).listen(0);
+    brokenServer = createApp({ db: unreachableDb }).listen(0);
+  });
+
+  after(async () => {
+    healthyServer.close();
+    brokenServer.close();
+    await db.$client.end();
+    await unreachableDb.$client.end();
+  });
+
+  it("returns 200 when Postgres is reachable", async () => {
+    const res = await fetch(`${listen(healthyServer)}/api/health/ready`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { status: "ready" });
+  });
+
+  it("returns 503 when Postgres is unreachable", async () => {
+    const res = await fetch(`${listen(brokenServer)}/api/health/ready`);
+
+    assert.equal(res.status, 503);
+    assert.deepEqual(await res.json(), { status: "unavailable" });
+  });
+});
