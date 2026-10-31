@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, describe, test } from "node:test";
-import type { Server } from "node:http";
-import app from "./app.ts";
+import createApp from "./app.ts";
+
+const app = createApp();
 
 describe("GET /api/health", () => {
   let server: Server;
