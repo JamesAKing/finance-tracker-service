@@ -1,9 +1,11 @@
 import express from "express";
 
-const app = express();
+export default function createApp() {
+  const app = express();
 
-app.get("/api/health", (_req, res) => {
-  res.json({ message: "Hello World" });
-});
+  app.get("/api/health", (_req, res) => {
+    res.json({ message: "Hello World" });
+  });
 
-export default app;
+  return app;
+}
