@@ -2,18 +2,24 @@ import assert from "node:assert/strict";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, beforeEach, describe, it, mock } from "node:test";
+import * as client from "openid-client";
 import createApp from "./app.ts";
 import type { Database } from "./db/db.ts";
 
 const execute = mock.fn(async () => []);
 const db = { execute } as unknown as Database;
 
+const auth = {
+  oidc: new client.Configuration({ issuer: "https://idp.example.test" }, "test-client"),
+  callbackUrl: "http://localhost:5173/api/auth/callback",
+};
+
 describe("health endpoints", () => {
   let server: Server;
   let baseUrl: string;
 
   before(() => {
-    server = createApp({ db }).listen(0);
+    server = createApp({ db, auth }).listen(0);
     const { port } = server.address() as AddressInfo;
     baseUrl = `http://localhost:${port}`;
   });

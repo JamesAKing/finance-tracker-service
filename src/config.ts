@@ -15,7 +15,6 @@ const envSchema = z.object({
 
 export type Config = ReturnType<typeof loadConfig>;
 
-// The only place that reads process.env. Error messages name the variable but never echo its value
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const result = envSchema.safeParse(env);
   if (!result.success) {

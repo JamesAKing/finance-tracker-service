@@ -1,8 +1,14 @@
 import { sql } from "drizzle-orm";
 import express from "express";
 import type { Database } from "./db/db.ts";
+import { type AuthRouterOptions, createAuthRouter } from "./features/auth/routes.ts";
 
-export default function createApp({ db }: { db: Database }) {
+type CreateAppOptions = {
+  db: Database;
+  auth: AuthRouterOptions;
+};
+
+export default function createApp({ db, auth }: CreateAppOptions) {
   const app = express();
 
   app.get("/api/health", (_req, res) => {
@@ -17,6 +23,8 @@ export default function createApp({ db }: { db: Database }) {
       res.status(503).json({ status: "unavailable" });
     }
   });
+
+  app.use("/api/auth", createAuthRouter(auth));
 
   return app;
 }
