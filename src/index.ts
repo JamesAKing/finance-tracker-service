@@ -1,6 +1,7 @@
 import createApp from "./app.ts";
 import { type Config, loadConfig } from "./config.ts";
 import { createDb, verifyConnection } from "./db/db.ts";
+import { discoverOidc, type OidcClient } from "./features/auth/oidc.ts";
 
 let config: Config;
 try {
@@ -19,8 +20,21 @@ try {
   process.exit(1);
 }
 
+let oidc: OidcClient;
+try {
+  oidc = await discoverOidc(config.oidc);
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}
+console.log(`OIDC issuer discovered at ${config.oidc.issuerUrl}`);
+
 const app = createApp({
   db,
+  auth: {
+    oidc,
+    callbackUrl: new URL("/api/auth/callback", config.webOrigin).href,
+  },
 });
 
 const server = app.listen(config.port, () => {

@@ -66,7 +66,12 @@ describe("loadConfig", () => {
 
   it("does not include secret values in the error", () => {
     assert.throws(
-      () => loadConfig({ ...validEnv, OIDC_CLIENT_SECRET: "", DATABASE_URL: "s3cret-not-a-url" }),
+      () =>
+        loadConfig({
+          ...validEnv,
+          OIDC_CLIENT_SECRET: "",
+          DATABASE_URL: "s3cret-not-a-url",
+        }),
       (error: Error) => {
         assert.doesNotMatch(error.message, /s3cret-not-a-url/);
         return true;
