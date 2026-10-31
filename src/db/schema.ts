@@ -1,11 +1,11 @@
-import { pgTable, uuid, text, customType, timestamp, index, foreignKey, primaryKey, unique } from "drizzle-orm/pg-core"
+import { bytea, pgTable, uuid, text, customType, timestamp, index, foreignKey, primaryKey, unique } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
 
 export const sessions = pgTable("sessions", {
 	id: uuid().defaultRandom().primaryKey(),
-	tokenHash: customType({ dataType: () => 'bytea' })("token_hash").notNull(),
+	tokenHash: bytea("token_hash").notNull(),
 	userId: uuid("user_id").notNull(),
 	authSessionId: text("auth_session_id"),
 	idToken: text("id_token").notNull(),

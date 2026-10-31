@@ -12,10 +12,7 @@ services:
       - finance_tracker_service_db_data:/var/lib/postgresql/data
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-finance_tracker}",
-        ]
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-finance_tracker}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -31,12 +28,7 @@ services:
         condition: service_healthy
     volumes:
       - ./db/changelog:/liquibase/changelog
-    # command:
-    #   - --url=jdbc:postgresql://finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
-    #   - --username=${POSTGRES_USER:-postgres}
-    #   - --password=${POSTGRES_PASSWORD:-password}
-    #   - --changelog-file=db.changelog-master.xml
-    #   - update
+    # Connection settings live in env vars so `docker compose run liquibase <command>` can swap the action
     environment:
       LIQUIBASE_COMMAND_URL: jdbc:postgresql://finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
       LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER:-postgres}

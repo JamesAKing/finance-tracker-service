@@ -95,8 +95,10 @@ schema is **generated** from the live database, never edited by hand:
 2. `drizzle-kit pull` (configured in `drizzle.config.ts`) regenerates
    `src/db/schema.ts` and `src/db/relations.ts`. Liquibase's own
    `databasechangelog*` tables are filtered out.
-3. `scripts/fix-generated-imports.ts` adds the `.ts` extension to the generated
-   imports, which `nodenext` module resolution requires.
+3. `scripts/fix-generated-schema.ts` patches output drizzle-kit gets wrong: it adds the
+   `.ts` extension to imports (`nodenext` requires it) and turns `bytea` columns into
+   typed `bytea()` columns (drizzle-kit emits an untyped `customType`). Each fix is a
+   workaround to delete once drizzle-kit handles the case itself.
 
 Commit the regenerated `schema.ts` and `relations.ts` so builds and type checks don't
 need a running database. Any hand edits to them are overwritten on the next

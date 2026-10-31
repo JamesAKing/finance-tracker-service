@@ -18,7 +18,7 @@
     "test:integration": "node --test --env-file-if-exists=.env \"src/**/*.integration.ts\"",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:migrate": "docker compose run --rm liquibase && drizzle-kit pull && node scripts/fix-generated-imports.ts"
+    "db:migrate": "docker compose run --rm liquibase && drizzle-kit pull && node scripts/fix-generated-schema.ts"
   },
   "dependencies": {
     "drizzle-orm": "^1.0.0-rc.5",
