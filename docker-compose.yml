@@ -4,8 +4,8 @@ services:
     container_name: finance-tracker-service-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-finance_tracker}
-      POSTGRES_USER: ${POSTGRES_USER:-finance}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finance}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
       - "5434:5432"
     volumes:
@@ -14,11 +14,29 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-finance} -d ${POSTGRES_DB:-finance_tracker}",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-finance_tracker}",
         ]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  liquibase:
+    build:
+      context: ./db
+      dockerfile: Dockerfile.liquibase
+    image: finance-tracker-liquibase
+    profiles: ["tools"]
+    depends_on:
+      finance-tracker-service-db:
+        condition: service_healthy
+    volumes:
+      - ./db/changelog:/liquibase/changelog
+    command:
+      - --url=jdbc:postgresql://finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
+      - --username=${POSTGRES_USER:-postgres}
+      - --password=${POSTGRES_PASSWORD:-password}
+      - --changelog-file=db.changelog-master.xml
+      - update
 
 volumes:
   finance_tracker_service_db_data:

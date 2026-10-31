@@ -1,0 +1,98 @@
+# Finance Tracker Service
+
+Express 5 + TypeScript API, backed by Postgres. Schema changes are managed with Liquibase.
+
+## Prerequisites
+
+- Node 24+
+- Docker (with Docker Compose)
+
+## Getting started
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Create your local env file and fill in the values:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   The `POSTGRES_*` values are used to create the database the first time it starts, so
+   `DATABASE_URL` must use the same user, password and database name.
+
+3. Start Postgres:
+
+   ```bash
+   npm run db:up
+   ```
+
+4. Apply database migrations:
+
+   ```bash
+   npm run db:migrate
+   ```
+
+   The first run builds a small Liquibase image (Liquibase 5.x ships without database
+   drivers), so it takes a little longer.
+
+5. Start the service:
+
+   ```bash
+   npm run dev
+   ```
+
+## Scripts
+
+| Script               | What it does                                                         |
+| -------------------- | -------------------------------------------------------------------- |
+| `npm run dev`        | Run the service with file watching, loading `.env`                   |
+| `npm test`           | Run the tests (no database needed)                                   |
+| `npm run lint`       | Lint with oxlint                                                     |
+| `npm run fmt`        | Format with oxfmt                                                    |
+| `npm run build`      | Compile TypeScript to `dist/`                                        |
+| `npm run db:up`      | Start Postgres in the background                                     |
+| `npm run db:down`    | Stop and remove the containers (data is kept in the volume)          |
+| `npm run db:migrate` | Run Liquibase `update`; only applies changesets that haven't run yet |
+
+## Database
+
+- Postgres 17 runs in Docker on host port **5434** (inside the container it is 5432).
+  5432 is avoided because a local Postgres install often uses it.
+- Connect with a GUI such as DBeaver using host `localhost`, port `5434`, and the
+  database, user and password from your `.env`.
+- Data lives in the named Docker volume `finance_tracker_service_db_data`, so it survives
+  `npm run db:down`.
+
+### Migrations
+
+Liquibase changelogs live in `db/changelog/`. `db.changelog-master.xml` is the entry
+point. Liquibase records what it has applied in the `databasechangelog` table, so
+running `npm run db:migrate` again is safe.
+
+If you change `db/Dockerfile.liquibase`, rebuild the image:
+
+```bash
+docker compose build liquibase
+```
+
+### Reset the database
+
+This deletes all local data and starts from scratch:
+
+```bash
+docker compose down -v
+npm run db:up
+npm run db:migrate
+```
+
+## Troubleshooting
+
+- **"database does not exist" in your GUI, but the container is healthy:** another
+  Postgres is probably answering on the port you are connecting to. Check the port
+  matches the one in `docker-compose.yml`.
+- **Changed `POSTGRES_USER`, `POSTGRES_PASSWORD` or `POSTGRES_DB` and nothing changed:**
+  those are only read when the volume is first created. Reset the database (above).

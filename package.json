@@ -16,7 +16,8 @@
     "fmt:check": "oxfmt --check",
     "test": "node --test",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "db:migrate": "docker compose run --rm liquibase"
   },
   "dependencies": {
     "express": "^5.3.0"
