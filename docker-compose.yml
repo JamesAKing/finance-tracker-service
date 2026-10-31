@@ -12,7 +12,10 @@ services:
       - finance_tracker_service_db_data:/var/lib/postgresql/data
     healthcheck:
       test:
-        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-finance_tracker}"]
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-finance_tracker}",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -28,12 +31,18 @@ services:
         condition: service_healthy
     volumes:
       - ./db/changelog:/liquibase/changelog
-    command:
-      - --url=jdbc:postgresql://finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
-      - --username=${POSTGRES_USER:-postgres}
-      - --password=${POSTGRES_PASSWORD:-password}
-      - --changelog-file=db.changelog-master.xml
-      - update
+    # command:
+    #   - --url=jdbc:postgresql://finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
+    #   - --username=${POSTGRES_USER:-postgres}
+    #   - --password=${POSTGRES_PASSWORD:-password}
+    #   - --changelog-file=db.changelog-master.xml
+    #   - update
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
+      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER:-postgres}
+      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog-master.xml
+    command: update
 
 volumes:
   finance_tracker_service_db_data:
