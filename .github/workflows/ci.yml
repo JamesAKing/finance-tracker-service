@@ -11,10 +11,12 @@ jobs:
     env:
       # Skip installing Git hooks on the CI machine
       HUSKY: "0"
+      # Matches the defaults in docker-compose.yml (host port 5434)
+      DATABASE_URL: postgres://postgres:password@localhost:5434/finance_tracker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -25,3 +27,7 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run build
       - run: npm test
+
+      # Reuse the project's compose file; --wait blocks until the healthcheck passes
+      - run: docker compose up -d --wait finance-tracker-service-db
+      - run: npm run test:integration
