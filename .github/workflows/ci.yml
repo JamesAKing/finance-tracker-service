@@ -30,4 +30,5 @@ jobs:
 
       # Reuse the project's compose file; --wait blocks until the healthcheck passes
       - run: docker compose up -d --wait finance-tracker-service-db
+      - run: docker compose run --rm liquibase
       - run: npm run test:integration
