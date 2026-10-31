@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, describe, it } from "node:test";
-import * as client from "openid-client";
 import createApp from "./app.ts";
 import { createDb } from "./db/db.ts";
+import { createFakeAuth } from "./features/auth/auth.fake.ts";
 
 // Only the database is needed here, so read DATABASE_URL directly rather than loading the full app config
 const databaseUrl = process.env.DATABASE_URL;
@@ -16,10 +16,7 @@ const db = createDb(databaseUrl);
 const unreachableDb = createDb("postgres://postgres:password@localhost:1/none");
 
 // These tests only touch health routes, so auth gets a stand-in that never talks to Keycloak
-const auth = {
-  oidc: new client.Configuration({ issuer: "https://idp.example.test" }, "test-client"),
-  callbackUrl: "http://localhost:5173/api/auth/callback",
-};
+const auth = createFakeAuth().options;
 
 function listen(server: Server) {
   const { port } = server.address() as AddressInfo;
