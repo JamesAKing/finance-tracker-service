@@ -24,6 +24,13 @@ Express 5 + TypeScript API, backed by Postgres. Schema changes are managed with 
    The `POSTGRES_*` values are used to create the database the first time it starts, so
    `DATABASE_URL` must use the same user, password and database name.
 
+   `OIDC_CLIENT_SECRET` and `WEB_ORIGIN` must match `API_CLIENT_SECRET` and `WEB_ORIGIN`
+   in the identity repo's `.env`.
+
+   All config is read and validated once at startup in `src/config.ts`. If anything is
+   missing or invalid, the service exits and lists every problem. Nothing else reads
+   `process.env`.
+
 3. Start Postgres:
 
    ```bash

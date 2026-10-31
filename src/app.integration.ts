@@ -2,15 +2,17 @@ import assert from "node:assert/strict";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, describe, it } from "node:test";
-import { drizzle } from "drizzle-orm/node-postgres";
 import createApp from "./app.ts";
-import { db } from "./db/db.ts";
-import { relations } from "./db/relations.ts";
+import { createDb } from "./db/db.ts";
+
+// Only the database is needed here, so read DATABASE_URL directly rather than loading the full app config
+const databaseUrl = process.env.DATABASE_URL;
+assert.ok(databaseUrl, "DATABASE_URL must be set to run integration tests");
+
+const db = createDb(databaseUrl);
 
 // A client pointed at a port where nothing is listening
-const unreachableDb = drizzle("postgres://postgres:password@localhost:1/none", {
-  relations,
-});
+const unreachableDb = createDb("postgres://postgres:password@localhost:1/none");
 
 function listen(server: Server) {
   const { port } = server.address() as AddressInfo;
