@@ -1,10 +1,19 @@
 import createApp from "./app.ts";
-import { db, verifyConnection } from "./db/db.ts";
+import { type Config, loadConfig } from "./config.ts";
+import { createDb, verifyConnection } from "./db/db.ts";
 
-const port = Number(process.env.PORT) || 3000;
+let config: Config;
+try {
+  config = loadConfig();
+} catch (error) {
+  console.error((error as Error).message);
+  process.exit(1);
+}
+
+const db = createDb(config.databaseUrl);
 
 try {
-  await verifyConnection();
+  await verifyConnection(db, config.databaseUrl);
 } catch (error) {
   console.error(error);
   process.exit(1);
@@ -14,8 +23,8 @@ const app = createApp({
   db,
 });
 
-const server = app.listen(port, () => {
-  console.log(`Listening on ${port}`);
+const server = app.listen(config.port, () => {
+  console.log(`Listening on ${config.port}`);
 });
 
 let shuttingDown = false;
