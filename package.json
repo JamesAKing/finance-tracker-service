@@ -17,16 +17,20 @@
     "test": "node --test",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:migrate": "docker compose run --rm liquibase"
+    "db:migrate": "docker compose run --rm liquibase && drizzle-kit pull && node scripts/fix-generated-imports.ts"
   },
   "dependencies": {
-    "express": "^5.3.0"
+    "drizzle-orm": "^1.0.0-rc.5",
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@types/express": "^5.0.6",
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^1.0.0-rc.5",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "oxfmt": "^0.75.0",

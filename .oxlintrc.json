@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "oxc", "node"],
+  "ignorePatterns": ["src/db/schema.ts", "src/db/relations.ts"],
   "rules": {
     "typescript/no-floating-promises": [
       "error",

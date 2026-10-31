@@ -15,6 +15,9 @@ logs/
 *.log
 npm-debug.log*
 
+# drizzle-kit pull writes a migration/snapshot folder; Liquibase owns migrations
+src/db/[0-9]*_*/
+
 # Docs
 /docs
 

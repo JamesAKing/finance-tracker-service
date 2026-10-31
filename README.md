@@ -47,16 +47,16 @@ Express 5 + TypeScript API, backed by Postgres. Schema changes are managed with 
 
 ## Scripts
 
-| Script               | What it does                                                         |
-| -------------------- | -------------------------------------------------------------------- |
-| `npm run dev`        | Run the service with file watching, loading `.env`                   |
-| `npm test`           | Run the tests (no database needed)                                   |
-| `npm run lint`       | Lint with oxlint                                                     |
-| `npm run fmt`        | Format with oxfmt                                                    |
-| `npm run build`      | Compile TypeScript to `dist/`                                        |
-| `npm run db:up`      | Start Postgres in the background                                     |
-| `npm run db:down`    | Stop and remove the containers (data is kept in the volume)          |
-| `npm run db:migrate` | Run Liquibase `update`; only applies changesets that haven't run yet |
+| Script               | What it does                                                   |
+| -------------------- | -------------------------------------------------------------- |
+| `npm run dev`        | Run the service with file watching, loading `.env`             |
+| `npm test`           | Run the tests (no database needed)                             |
+| `npm run lint`       | Lint with oxlint                                               |
+| `npm run fmt`        | Format with oxfmt                                              |
+| `npm run build`      | Compile TypeScript to `dist/`                                  |
+| `npm run db:up`      | Start Postgres in the background                               |
+| `npm run db:down`    | Stop and remove the containers (data is kept in the volume)    |
+| `npm run db:migrate` | Apply Liquibase changesets, then regenerate the Drizzle schema |
 
 ## Database
 
@@ -78,6 +78,28 @@ If you change `db/Dockerfile.liquibase`, rebuild the image:
 ```bash
 docker compose build liquibase
 ```
+
+### Drizzle schema
+
+Liquibase is the single source of truth for the database structure. The Drizzle
+schema is **generated** from the live database, never edited by hand:
+
+1. `npm run db:migrate` applies the Liquibase changesets.
+2. `drizzle-kit pull` (configured in `drizzle.config.ts`) regenerates
+   `src/db/schema.ts` and `src/db/relations.ts`. Liquibase's own
+   `databasechangelog*` tables are filtered out.
+3. `scripts/fix-generated-imports.ts` adds the `.ts` extension to the generated
+   imports, which `nodenext` module resolution requires.
+
+Commit the regenerated `schema.ts` and `relations.ts` so builds and type checks don't
+need a running database. Any hand edits to them are overwritten on the next
+`db:migrate`, and they are excluded from linting and formatting.
+
+`drizzle-kit pull` also writes a timestamped migration folder under `src/db/`. It is
+git-ignored, because Liquibase owns migrations.
+
+`drizzle.config.ts` loads `.env` when it exists, and otherwise uses `DATABASE_URL` from
+the environment, so the same command works locally and in CI.
 
 ### Reset the database
 
