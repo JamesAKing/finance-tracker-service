@@ -27,7 +27,7 @@ describe("health endpoints", () => {
   });
 
   describe("GET /api/health", () => {
-    it("returns an ok status without touching the database", async () => {
+    it("returns an ok status", async () => {
       const res = await fetch(`${baseUrl}/api/health`);
 
       assert.equal(res.status, 200);
