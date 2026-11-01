@@ -86,6 +86,7 @@ Inside the container, two values differ from `.env` (set in `docker-compose.yml`
 | -------------------- | -------------------------------------------------------------- |
 | `npm run dev`        | Run the service with file watching, loading `.env`             |
 | `npm test`           | Run the tests (no database needed)                             |
+| `npm run lint:api`   | Lint `openapi.yaml` with Redocly                               |
 | `npm run lint`       | Lint with oxlint                                               |
 | `npm run fmt`        | Format with oxfmt                                              |
 | `npm run build`      | Compile TypeScript to `dist/`                                  |

@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: Finance Tracker API
+  version: 0.1.0
+  description: Contract for the Finance Tracker service. Hand-written and the source of truth.
+  license:
+    name: ISC
+    identifier: ISC
+
+servers:
+  - url: /api
+
+paths: {}
+
+components:
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details
+      additionalProperties: false
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+
+  responses:
+    Unauthorized:
+      description: No valid session
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            title: Unauthorized
+            status: 401
+            detail: Not authenticated
