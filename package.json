@@ -13,7 +13,7 @@
     "prepare": "husky",
     "lint": "oxlint",
     "lint:api": "redocly lint openapi.yaml",
-    "generate:client": "openapi-generator-cli generate -i openapi.yaml -g typescript-fetch --global-property apiDocs=false,modelDocs=false --additional-properties=withoutRuntimeChecks=true -o",
+    "generate:client": "openapi-generator-cli generate -i openapi.yaml -g typescript-fetch --global-property apiDocs=false,modelDocs=false -o",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "node --test",

@@ -92,9 +92,8 @@ npm run generate:client -- ../client/src/api/generated
 ```
 
 The generator (OpenAPI Generator, `typescript-fetch`) runs on Java, so you need a JRE
-(17+) installed. Its version is pinned in `openapitools.json`. Runtime payload checks are
-switched off (`withoutRuntimeChecks`): the service validates its own responses against the
-spec. Never edit the generated files: change the spec and regenerate.
+(17+) installed. Its version is pinned in `openapitools.json`. Never edit the generated
+files: change the spec and regenerate.
 
 ## Scripts
 
