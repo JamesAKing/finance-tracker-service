@@ -80,19 +80,37 @@ Inside the container, two values differ from `.env` (set in `docker-compose.yml`
   its own requests to Keycloak (discovery, code exchange, keys) to the internal URL
   instead. Keycloak's `KC_HOSTNAME` keeps the issuer the same whichever address is used.
 
+## API contract
+
+`openapi.yaml` is the hand-written source of truth for the API. Every request and response
+is validated against it at runtime (`src/api-contract.ts`), and CI lints it with Redocly.
+
+To regenerate the web client's API code after changing the spec:
+
+```bash
+npm run generate:client -- ../client/src/api/generated
+```
+
+The generator (OpenAPI Generator, `typescript-fetch`) runs on Java, so you need a JRE
+(17+) installed. Its version is pinned in `openapitools.json`. Templates in
+`openapi-generator/templates/` override the generator's defaults; at the moment that only
+adds `// @ts-nocheck` to each file, because the generated code doesn't meet the client's
+strict compiler settings. Never edit the generated files: change the spec and regenerate.
+
 ## Scripts
 
-| Script               | What it does                                                   |
-| -------------------- | -------------------------------------------------------------- |
-| `npm run dev`        | Run the service with file watching, loading `.env`             |
-| `npm test`           | Run the tests (no database needed)                             |
-| `npm run lint:api`   | Lint `openapi.yaml` with Redocly                               |
-| `npm run lint`       | Lint with oxlint                                               |
-| `npm run fmt`        | Format with oxfmt                                              |
-| `npm run build`      | Compile TypeScript to `dist/`                                  |
-| `npm run db:up`      | Start Postgres in the background                               |
-| `npm run db:down`    | Stop and remove the containers (data is kept in the volume)    |
-| `npm run db:migrate` | Apply Liquibase changesets, then regenerate the Drizzle schema |
+| Script                             | What it does                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev`                      | Run the service with file watching, loading `.env`                               |
+| `npm test`                         | Run the tests (no database needed)                                               |
+| `npm run lint:api`                 | Lint `openapi.yaml` with Redocly                                                 |
+| `npm run generate:client -- <dir>` | Generate a TypeScript fetch client from `openapi.yaml` into `<dir>` (needs Java) |
+| `npm run lint`                     | Lint with oxlint                                                                 |
+| `npm run fmt`                      | Format with oxfmt                                                                |
+| `npm run build`                    | Compile TypeScript to `dist/`                                                    |
+| `npm run db:up`                    | Start Postgres in the background                                                 |
+| `npm run db:down`                  | Stop and remove the containers (data is kept in the volume)                      |
+| `npm run db:migrate`               | Apply Liquibase changesets, then regenerate the Drizzle schema                   |
 
 ## Database
 
