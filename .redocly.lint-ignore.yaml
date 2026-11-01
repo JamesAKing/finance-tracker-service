@@ -2,5 +2,5 @@
 # See https://redocly.com/docs/cli/ for more information.
 openapi.yaml:
   operation-2xx-response:
-    - '#/paths/~1auth~1login/get/responses'
-    - '#/paths/~1auth~1callback/get/responses'
+    - "#/paths/~1auth~1login/get/responses"
+    - "#/paths/~1auth~1callback/get/responses"
