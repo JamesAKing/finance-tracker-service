@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import type { Database } from "../../db/db.ts";
-import { sessions } from "../../db/schema.ts";
+import { sessions, users } from "../../db/schema.ts";
 
 export type NewSession = {
   userId: string;
@@ -11,6 +11,12 @@ export type NewSession = {
 
 type SessionRepositoryOptions = {
   maxLifespanSeconds: number;
+  idleTimeoutSeconds: number;
+};
+
+export type CurrentUser = {
+  userId: string;
+  email: string;
 };
 
 export function hashSessionToken(token: string) {
@@ -19,7 +25,7 @@ export function hashSessionToken(token: string) {
 
 export function createSessionRepository(
   db: Database,
-  { maxLifespanSeconds }: SessionRepositoryOptions,
+  { maxLifespanSeconds, idleTimeoutSeconds }: SessionRepositoryOptions,
 ) {
   return {
     async create({ userId, authSessionId, idToken }: NewSession) {
@@ -35,6 +41,24 @@ export function createSessionRepository(
       });
 
       return { token, expiresAt };
+    },
+
+    async findActive(token: string): Promise<CurrentUser | undefined> {
+      const [user] = await db
+        .update(sessions)
+        .set({ lastSeenAt: sql`now()` })
+        .from(users)
+        .where(
+          and(
+            eq(sessions.userId, users.id),
+            eq(sessions.tokenHash, hashSessionToken(token)),
+            gt(sessions.expiresAt, sql`now()`),
+            gt(sessions.lastSeenAt, sql`now() - make_interval(secs => ${idleTimeoutSeconds})`),
+          ),
+        )
+        .returning({ userId: users.id, email: users.email });
+
+      return user;
     },
 
     async delete(token: string) {

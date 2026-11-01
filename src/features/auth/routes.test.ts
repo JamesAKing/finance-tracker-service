@@ -5,7 +5,8 @@ import type { AddressInfo } from "node:net";
 import { after, afterEach, before, beforeEach, describe, it, mock } from "node:test";
 import cookieParser from "cookie-parser";
 import express from "express";
-import { createFakeAuth, FAKE_LOGIN } from "./auth.fake.ts";
+import { sendProblem } from "../../api-contract.ts";
+import { ACTIVE_SESSION_TOKEN, createFakeAuth, FAKE_LOGIN } from "./auth.fake.ts";
 import type { AuthFlow } from "./oidc.ts";
 import { AUTH_FLOW_COOKIE, createAuthRouter, SESSION_COOKIE } from "./routes.ts";
 
@@ -19,6 +20,7 @@ before(() => {
   const app = express();
   app.use(cookieParser());
   app.use("/api/auth", createAuthRouter(fake.options));
+  app.use(sendProblem);
   server = app.listen(0);
   const { port } = server.address() as AddressInfo;
   baseUrl = `http://localhost:${port}`;
@@ -189,4 +191,35 @@ describe("GET /api/auth/callback", () => {
     assert.equal(fake.createSession.mock.callCount(), 0);
     assert.equal(findSetCookie(res, SESSION_COOKIE), undefined);
   });
+});
+
+describe("GET /api/auth/me", () => {
+  function getMe(cookie?: string) {
+    return fetch(`${baseUrl}/api/auth/me`, cookie ? { headers: { cookie } } : {});
+  }
+
+  it("returns the signed-in user's email and nothing else", async () => {
+    const res = await getMe(`${SESSION_COOKIE}=${ACTIVE_SESSION_TOKEN}`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { email: FAKE_LOGIN.identity.email });
+    assert.equal(res.headers.get("cache-control"), "no-store");
+  });
+
+  for (const [name, cookie] of [
+    ["without a session cookie", undefined],
+    ["with an unknown or expired session", `${SESSION_COOKIE}=not-a-real-token`],
+  ] as const) {
+    it(`returns a generic 401 ${name}`, async () => {
+      const res = await getMe(cookie);
+
+      assert.equal(res.status, 401);
+      assert.equal(res.headers.get("content-type"), "application/problem+json; charset=utf-8");
+      assert.deepEqual(await res.json(), {
+        title: "Unauthorized",
+        status: 401,
+        detail: "Not authenticated",
+      });
+    });
+  }
 });

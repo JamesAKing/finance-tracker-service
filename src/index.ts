@@ -39,6 +39,7 @@ const app = createApp({
     users: createUserRepository(db),
     sessions: createSessionRepository(db, {
       maxLifespanSeconds: config.session.maxLifespanSeconds,
+      idleTimeoutSeconds: config.session.idleTimeoutSeconds,
     }),
     callbackUrl: new URL("/api/auth/callback", config.webOrigin).href,
     webOrigin: config.webOrigin,

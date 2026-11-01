@@ -12,7 +12,10 @@ assert.ok(databaseUrl, "DATABASE_URL must be set to run integration tests");
 
 const db = createDb(databaseUrl);
 const userRepository = createUserRepository(db);
-const sessionRepository = createSessionRepository(db, { maxLifespanSeconds: 36000 });
+const sessionRepository = createSessionRepository(db, {
+  maxLifespanSeconds: 36000,
+  idleTimeoutSeconds: 1800,
+});
 
 const issuer = `https://idp.example.test/${randomUUID()}`;
 
@@ -80,5 +83,59 @@ describe("session repository (real database)", () => {
 
     const rows = await db.select().from(sessions).where(eq(sessions.userId, userId));
     assert.equal(rows.length, 0);
+  });
+
+  describe("findActive", () => {
+    async function createSessionFor(subject: string) {
+      const userId = await userRepository.upsert({
+        issuer,
+        subject,
+        email: `${subject}@example.test`,
+      });
+      const { token } = await sessionRepository.create({
+        userId,
+        authSessionId: undefined,
+        idToken: "id-token",
+      });
+      return { userId, token };
+    }
+
+    it("returns the user for an active session and records that it was seen", async () => {
+      const { userId, token } = await createSessionFor("active");
+      await db
+        .update(sessions)
+        .set({ lastSeenAt: new Date(Date.now() - 60_000) })
+        .where(eq(sessions.userId, userId));
+
+      const user = await sessionRepository.findActive(token);
+
+      assert.deepEqual(user, { userId, email: "active@example.test" });
+      const [row] = await db.select().from(sessions).where(eq(sessions.userId, userId));
+      assert.ok(row && row.lastSeenAt.getTime() > Date.now() - 10_000);
+    });
+
+    it("returns nothing for a token that doesn't exist", async () => {
+      assert.equal(await sessionRepository.findActive("not-a-real-token"), undefined);
+    });
+
+    it("returns nothing once the absolute lifetime has passed", async () => {
+      const { userId, token } = await createSessionFor("expired");
+      await db
+        .update(sessions)
+        .set({ expiresAt: new Date(Date.now() - 1000) })
+        .where(eq(sessions.userId, userId));
+
+      assert.equal(await sessionRepository.findActive(token), undefined);
+    });
+
+    it("returns nothing once the session has been idle too long", async () => {
+      const { userId, token } = await createSessionFor("idle");
+      await db
+        .update(sessions)
+        .set({ lastSeenAt: new Date(Date.now() - 1801 * 1000) })
+        .where(eq(sessions.userId, userId));
+
+      assert.equal(await sessionRepository.findActive(token), undefined);
+    });
   });
 });

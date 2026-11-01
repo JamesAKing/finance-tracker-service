@@ -2,13 +2,14 @@ import express from "express";
 import * as client from "openid-client";
 import { z } from "zod";
 import type { AuthFlow, CodeExchange, OidcClient } from "./oidc.ts";
+import { createRequireAuth, currentUser, SESSION_COOKIE } from "./require-auth.ts";
 import type { SessionRepository } from "./session-repository.ts";
 import type { UserRepository } from "./user-repository.ts";
 
 export const AUTH_FLOW_COOKIE = "auth_flow";
 const AUTH_FLOW_MAX_AGE_MS = 10 * 60 * 1000;
 
-export const SESSION_COOKIE = "__Host-session";
+export { SESSION_COOKIE };
 
 const authFlowSchema = z.object({
   state: z.string(),
@@ -43,6 +44,7 @@ export function createAuthRouter({
   webOrigin,
 }: AuthRouterOptions) {
   const router = express.Router();
+  const requireAuth = createRequireAuth(sessions);
 
   const authFlowCookieOptions = {
     httpOnly: true,
@@ -110,6 +112,11 @@ export function createAuthRouter({
       console.error("Login callback failed", error);
       res.redirect(new URL("/?login=failed", webOrigin).href);
     }
+  });
+
+  router.get("/me", requireAuth, (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.json({ email: currentUser(res).email });
   });
 
   return router;
