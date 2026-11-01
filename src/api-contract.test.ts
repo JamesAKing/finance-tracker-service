@@ -72,4 +72,18 @@ describe("enforceApiContract", () => {
     assert.equal(res.headers.get("content-type"), "application/problem+json; charset=utf-8");
     assert.deepEqual(await res.json(), { title: "Internal Server Error", status: 500 });
   });
+
+  it("returns a bare 500 when a handler throws, without the error's message", async (t) => {
+    t.mock.method(console, "error", () => {});
+    handler.mock.mockImplementationOnce(() => {
+      throw new Error("secret internals");
+    });
+
+    const res = await fetch(`${baseUrl}/api/thing`);
+
+    assert.equal(res.status, 500);
+    const text = await res.text();
+    assert.doesNotMatch(text, /secret/);
+    assert.deepEqual(JSON.parse(text), { title: "Internal Server Error", status: 500 });
+  });
 });
