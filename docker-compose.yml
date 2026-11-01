@@ -36,5 +36,26 @@ services:
       LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog-master.xml
     command: update
 
+  finance-tracker-service:
+    build: .
+    image: finance-tracker-service
+    container_name: finance-tracker-service
+    profiles: ["app"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@finance-tracker-service-db:5432/${POSTGRES_DB:-finance_tracker}
+    ports:
+      - "3000:3000"
+    depends_on:
+      finance-tracker-service-db:
+        condition: service_healthy
+    networks:
+      - default
+      - finance-tracker
+
+networks:
+  finance-tracker:
+    external: true
+
 volumes:
   finance_tracker_service_db_data:
