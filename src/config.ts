@@ -6,6 +6,7 @@ const envSchema = z.object({
   // The origin the browser uses (Vite in dev). Keycloak redirects back to `${WEB_ORIGIN}/api/auth/callback`
   WEB_ORIGIN: z.url(),
   OIDC_ISSUER_URL: z.url(),
+  OIDC_INTERNAL_URL: z.url().optional(),
   OIDC_CLIENT_ID: z.string().min(1),
   OIDC_CLIENT_SECRET: z.string().min(1),
   // Keep in step with ssoSessionIdleTimeout / ssoSessionMaxLifespan in identity/keycloak/realm.json
@@ -31,6 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     webOrigin: vars.WEB_ORIGIN,
     oidc: {
       issuerUrl: vars.OIDC_ISSUER_URL,
+      internalUrl: vars.OIDC_INTERNAL_URL,
       clientId: vars.OIDC_CLIENT_ID,
       clientSecret: vars.OIDC_CLIENT_SECRET,
     },

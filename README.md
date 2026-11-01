@@ -52,6 +52,34 @@ Express 5 + TypeScript API, backed by Postgres. Schema changes are managed with 
    npm run dev
    ```
 
+## Run in Docker
+
+The service can also run as a container next to its database. It is behind the `app`
+profile, so `npm run db:up` still starts only Postgres.
+
+1. Start identity first. Its compose file creates the shared `finance-tracker` network,
+   which the service and client join to reach Keycloak and each other.
+2. Complete steps 2 and 4 of Getting started (`.env` and migrations).
+3. Build and start:
+
+   ```bash
+   docker compose --profile app up -d --build
+   ```
+
+4. Check `docker logs finance-tracker-service` shows "OIDC issuer discovered".
+
+Stop `npm run dev` first: both use port 3000.
+
+Inside the container, two values differ from `.env` (set in `docker-compose.yml`):
+
+- `DATABASE_URL` points at `finance-tracker-service-db:5432`, the database's name and
+  port on the Docker network, not `localhost:5434`.
+- `OIDC_INTERNAL_URL` is `http://keycloak:8080`. The issuer stays
+  `http://localhost:8080/...` because that is what the browser uses and what ID tokens
+  contain, but inside a container `localhost` is the container itself. The service sends
+  its own requests to Keycloak (discovery, code exchange, keys) to the internal URL
+  instead. Keycloak's `KC_HOSTNAME` keeps the issuer the same whichever address is used.
+
 ## Scripts
 
 | Script               | What it does                                                   |

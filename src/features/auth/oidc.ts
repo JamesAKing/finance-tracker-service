@@ -18,7 +18,23 @@ export type LoginResult = {
 
 export type CodeExchange = (currentUrl: URL, flow: AuthFlow) => Promise<LoginResult>;
 
-export async function discoverOidc({ issuerUrl, clientId, clientSecret }: Config["oidc"]) {
+function routeIssuerTo(issuer: URL, internal: URL): client.CustomFetch {
+  return (url, options) => {
+    const target = new URL(url);
+    if (target.origin === issuer.origin) {
+      target.protocol = internal.protocol;
+      target.host = internal.host;
+    }
+    return fetch(target, { ...options, body: options.body ?? null });
+  };
+}
+
+export async function discoverOidc({
+  issuerUrl,
+  internalUrl,
+  clientId,
+  clientSecret,
+}: Config["oidc"]) {
   const issuer = new URL(issuerUrl);
 
   const isLocalHttp = issuer.protocol === "http:" && issuer.hostname === "localhost";
@@ -26,6 +42,7 @@ export async function discoverOidc({ issuerUrl, clientId, clientSecret }: Config
   try {
     return await client.discovery(issuer, clientId, clientSecret, undefined, {
       ...(isLocalHttp && { execute: [client.allowInsecureRequests] }),
+      ...(internalUrl && { [client.customFetch]: routeIssuerTo(issuer, new URL(internalUrl)) }),
     });
   } catch (error) {
     throw new Error(`Could not discover OIDC issuer at ${issuer.href}`, {
