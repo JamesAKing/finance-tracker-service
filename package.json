@@ -13,6 +13,7 @@
     "prepare": "husky",
     "lint": "oxlint",
     "lint:api": "redocly lint openapi.yaml",
+    "generate:client": "openapi-generator-cli generate -i openapi.yaml -g typescript-fetch --global-property apiDocs=false,modelDocs=false -o",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "test": "node --test",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
+    "@openapitools/openapi-generator-cli": "^2.42.0",
     "@redocly/cli": "^2.72.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
