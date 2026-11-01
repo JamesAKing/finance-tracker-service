@@ -64,6 +64,15 @@ export function createSessionRepository(
     async delete(token: string) {
       await db.delete(sessions).where(eq(sessions.tokenHash, hashSessionToken(token)));
     },
+
+    async end(token: string) {
+      const [row] = await db
+        .delete(sessions)
+        .where(eq(sessions.tokenHash, hashSessionToken(token)))
+        .returning({ idToken: sessions.idToken });
+
+      return row?.idToken;
+    },
   };
 }
 

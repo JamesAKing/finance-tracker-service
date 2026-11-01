@@ -119,6 +119,26 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Logs out the user
+      description:
+        Browser form post, not a fetch call. Ends the session if there is one and clears the
+        session cookie. Always succeeds, with or without a session.
+      tags: [auth]
+      security: []
+      responses:
+        "302":
+          description:
+            Redirect to Keycloak's end-session endpoint when a session was found, which then
+            returns the browser to the app. Redirect straight to the app when there was none
+          headers:
+            Location:
+              $ref: "#/components/headers/Location"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
 components:
   securitySchemes:
     sessionCookie:
