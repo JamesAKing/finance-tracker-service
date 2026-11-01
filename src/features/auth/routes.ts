@@ -53,6 +53,13 @@ export function createAuthRouter({
     path: new URL(callbackUrl).pathname,
   } as const;
 
+  const sessionCookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+  } as const;
+
   router.get("/login", async (_req, res) => {
     const flow: AuthFlow = {
       state: client.randomState(),
@@ -101,10 +108,7 @@ export function createAuthRouter({
       });
 
       res.cookie(SESSION_COOKIE, token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
+        ...sessionCookieOptions,
         expires: expiresAt,
       });
       res.redirect(new URL("/", webOrigin).href);
@@ -117,6 +121,27 @@ export function createAuthRouter({
   router.get("/me", requireAuth, (_req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({ email: currentUser(res).email });
+  });
+
+  router.post("/logout", async (req, res) => {
+    const incomingToken: unknown = req.cookies[SESSION_COOKIE];
+    let idToken: string | undefined;
+
+    if (typeof incomingToken === "string") {
+      idToken = await sessions.end(incomingToken);
+    }
+
+    res.clearCookie(SESSION_COOKIE, sessionCookieOptions);
+
+    const endSessionUrl =
+      typeof idToken === "string"
+        ? client.buildEndSessionUrl(oidc, {
+            id_token_hint: idToken,
+            post_logout_redirect_uri: webOrigin,
+          })
+        : new URL("/", webOrigin);
+
+    res.redirect(endSessionUrl.href);
   });
 
   return router;

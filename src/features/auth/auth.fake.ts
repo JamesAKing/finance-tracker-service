@@ -25,6 +25,9 @@ export function createFakeAuth() {
     expiresAt: new Date(Date.now() + 60 * 60 * 1000),
   }));
   const deleteSession = mock.fn<SessionRepository["delete"]>(async () => {});
+  const endSession = mock.fn<SessionRepository["end"]>(async (token) =>
+    token === ACTIVE_SESSION_TOKEN ? FAKE_LOGIN.idToken : undefined,
+  );
   const findActiveSession = mock.fn<SessionRepository["findActive"]>(async (token) =>
     token === ACTIVE_SESSION_TOKEN
       ? { userId: "user-1", email: FAKE_LOGIN.identity.email }
@@ -36,16 +39,30 @@ export function createFakeAuth() {
       {
         issuer: "https://idp.example.test/realms/test",
         authorization_endpoint: "https://idp.example.test/realms/test/auth",
+        end_session_endpoint: "https://idp.example.test/realms/test/logout",
       },
       "test-client",
       "test-secret",
     ),
     exchangeCode,
     users: { upsert: upsertUser },
-    sessions: { create: createSession, delete: deleteSession, findActive: findActiveSession },
+    sessions: {
+      create: createSession,
+      delete: deleteSession,
+      end: endSession,
+      findActive: findActiveSession,
+    },
     callbackUrl: "http://localhost:5173/api/auth/callback",
     webOrigin: "http://localhost:5173",
   };
 
-  return { options, exchangeCode, upsertUser, createSession, deleteSession, findActiveSession };
+  return {
+    options,
+    exchangeCode,
+    upsertUser,
+    createSession,
+    deleteSession,
+    endSession,
+    findActiveSession,
+  };
 }

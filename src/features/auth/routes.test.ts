@@ -223,3 +223,63 @@ describe("GET /api/auth/me", () => {
     });
   }
 });
+
+describe("POST /api/auth/logout", () => {
+  beforeEach(() => {
+    fake.endSession.mock.resetCalls();
+  });
+
+  function postLogout(cookie?: string) {
+    return fetch(`${baseUrl}/api/auth/logout`, {
+      method: "POST",
+      redirect: "manual",
+      ...(cookie && { headers: { cookie } }),
+    });
+  }
+
+  function assertSessionCookieCleared(res: Response) {
+    const header = findSetCookie(res, SESSION_COOKIE);
+    assert.ok(header, "session cookie was not cleared");
+    assert.match(header, /^__Host-session=;/);
+    assert.match(header, /Path=\/;/);
+    assert.match(header, /Expires=Thu, 01 Jan 1970/);
+    assert.match(header, /HttpOnly/);
+    assert.match(header, /Secure/);
+  }
+
+  it("ends the session and sends the browser through Keycloak to sign out there too", async () => {
+    const res = await postLogout(`${SESSION_COOKIE}=${ACTIVE_SESSION_TOKEN}`);
+
+    assert.equal(res.status, 302);
+    const location = new URL(res.headers.get("location") ?? "");
+    assert.equal(
+      location.origin + location.pathname,
+      "https://idp.example.test/realms/test/logout",
+    );
+    assert.equal(location.searchParams.get("id_token_hint"), FAKE_LOGIN.idToken);
+    assert.ok(location.searchParams.get("post_logout_redirect_uri")?.startsWith(webOrigin));
+    assert.deepEqual(
+      fake.endSession.mock.calls.map((call) => call.arguments),
+      [[ACTIVE_SESSION_TOKEN]],
+    );
+    assertSessionCookieCleared(res);
+  });
+
+  it("goes straight back to the app when the session is unknown or has expired", async () => {
+    const res = await postLogout(`${SESSION_COOKIE}=not-a-real-token`);
+
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("location"), new URL("/", webOrigin).href);
+    assert.equal(fake.endSession.mock.callCount(), 1);
+    assertSessionCookieCleared(res);
+  });
+
+  it("goes straight back to the app, without touching the database, when there is no cookie", async () => {
+    const res = await postLogout();
+
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("location"), new URL("/", webOrigin).href);
+    assert.equal(fake.endSession.mock.callCount(), 0);
+    assertSessionCookieCleared(res);
+  });
+});

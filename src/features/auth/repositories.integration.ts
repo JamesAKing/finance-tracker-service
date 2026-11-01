@@ -85,6 +85,51 @@ describe("session repository (real database)", () => {
     assert.equal(rows.length, 0);
   });
 
+  describe("end", () => {
+    it("deletes the session and returns the ID token it held", async () => {
+      const userId = await userRepository.upsert({
+        issuer,
+        subject: "sub-end",
+        email: "e@example.test",
+      });
+      const { token } = await sessionRepository.create({
+        userId,
+        authSessionId: undefined,
+        idToken: "stored-id-token",
+      });
+
+      const idToken = await sessionRepository.end(token);
+
+      assert.equal(idToken, "stored-id-token");
+      const rows = await db.select().from(sessions).where(eq(sessions.userId, userId));
+      assert.equal(rows.length, 0);
+    });
+
+    it("returns nothing when there is no such session, and does not fail", async () => {
+      assert.equal(await sessionRepository.end("not-a-real-token"), undefined);
+    });
+
+    it("leaves other sessions alone", async () => {
+      const userId = await userRepository.upsert({
+        issuer,
+        subject: "sub-end-other",
+        email: "o@example.test",
+      });
+      const first = await sessionRepository.create({
+        userId,
+        authSessionId: undefined,
+        idToken: "id-token-1",
+      });
+      await sessionRepository.create({ userId, authSessionId: undefined, idToken: "id-token-2" });
+
+      await sessionRepository.end(first.token);
+
+      const rows = await db.select().from(sessions).where(eq(sessions.userId, userId));
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0]?.idToken, "id-token-2");
+    });
+  });
+
   describe("findActive", () => {
     async function createSessionFor(subject: string) {
       const userId = await userRepository.upsert({
