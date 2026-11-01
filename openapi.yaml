@@ -99,8 +99,44 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get the signed-in user
+      description: A 401 means there is no valid session; the client should send the browser to /auth/login.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: The signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-session
+      description: Opaque session token set by /auth/callback. HttpOnly, so JavaScript never sees it.
+
   schemas:
+    CurrentUser:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
     Liveness:
       type: object
       additionalProperties: false

@@ -15,6 +15,8 @@ export const FAKE_LOGIN: LoginResult = {
   idToken: "header.payload.signature",
 };
 
+export const ACTIVE_SESSION_TOKEN = "active-session-token";
+
 export function createFakeAuth() {
   const exchangeCode = mock.fn<CodeExchange>(async () => FAKE_LOGIN);
   const upsertUser = mock.fn<UserRepository["upsert"]>(async () => "user-1");
@@ -23,6 +25,11 @@ export function createFakeAuth() {
     expiresAt: new Date(Date.now() + 60 * 60 * 1000),
   }));
   const deleteSession = mock.fn<SessionRepository["delete"]>(async () => {});
+  const findActiveSession = mock.fn<SessionRepository["findActive"]>(async (token) =>
+    token === ACTIVE_SESSION_TOKEN
+      ? { userId: "user-1", email: FAKE_LOGIN.identity.email }
+      : undefined,
+  );
 
   const options: AuthRouterOptions = {
     oidc: new client.Configuration(
@@ -35,10 +42,10 @@ export function createFakeAuth() {
     ),
     exchangeCode,
     users: { upsert: upsertUser },
-    sessions: { create: createSession, delete: deleteSession },
+    sessions: { create: createSession, delete: deleteSession, findActive: findActiveSession },
     callbackUrl: "http://localhost:5173/api/auth/callback",
     webOrigin: "http://localhost:5173",
   };
 
-  return { options, exchangeCode, upsertUser, createSession, deleteSession };
+  return { options, exchangeCode, upsertUser, createSession, deleteSession, findActiveSession };
 }
