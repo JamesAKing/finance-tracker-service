@@ -19,6 +19,7 @@ describe("loadConfig", () => {
     assert.equal(config.webOrigin, validEnv.WEB_ORIGIN);
     assert.deepEqual(config.oidc, {
       issuerUrl: validEnv.OIDC_ISSUER_URL,
+      internalUrl: undefined,
       clientId: validEnv.OIDC_CLIENT_ID,
       clientSecret: validEnv.OIDC_CLIENT_SECRET,
     });
