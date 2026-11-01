@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import cookieParser from "cookie-parser";
 import express from "express";
+import { enforceApiContract, sendProblem } from "./api-contract.ts";
 import type { Database } from "./db/db.ts";
 import { type AuthRouterOptions, createAuthRouter } from "./features/auth/routes.ts";
 
@@ -13,6 +14,7 @@ export default function createApp({ db, auth }: CreateAppOptions) {
   const app = express();
 
   app.use(cookieParser());
+  app.use(enforceApiContract());
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -28,6 +30,8 @@ export default function createApp({ db, auth }: CreateAppOptions) {
   });
 
   app.use("/api/auth", createAuthRouter(auth));
+
+  app.use(sendProblem);
 
   return app;
 }

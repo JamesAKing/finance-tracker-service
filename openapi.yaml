@@ -13,6 +13,8 @@ servers:
 tags:
   - name: health
     description: Liveness and readiness checks for Docker, load balancers and monitors
+  - name: auth
+    description: Login through Keycloak and the current session
 
 paths:
   /health:
@@ -28,6 +30,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Liveness"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /health/ready:
     get:
@@ -44,6 +48,8 @@ paths:
                 $ref: "#/components/schemas/Readiness"
               example:
                 status: ready
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "503":
           description: The database is unreachable. Details are logged, not returned
           content:
@@ -52,6 +58,46 @@ paths:
                 $ref: "#/components/schemas/Readiness"
               example:
                 status: unavailable
+
+  /auth/login:
+    get:
+      operationId: login
+      summary: Start a login through Keycloak
+      description: Browser navigation, not a fetch call. Sets the short-lived auth_flow cookie.
+      tags: [auth]
+      security: []
+      responses:
+        "302":
+          description: Redirect to Keycloak's authorization endpoint
+          headers:
+            Location:
+              $ref: "#/components/headers/Location"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/callback:
+    get:
+      operationId: loginCallback
+      summary: Finish a login and start a session
+      description: Keycloak redirects the browser here. Sets the session cookie on success.
+      tags: [auth]
+      security: []
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: state, in: query, schema: { type: string } }
+        - { name: session_state, in: query, schema: { type: string } }
+        - { name: iss, in: query, schema: { type: string } }
+        - { name: error, in: query, schema: { type: string } }
+        - { name: error_description, in: query, schema: { type: string } }
+        - { name: error_uri, in: query, schema: { type: string } }
+      responses:
+        "302":
+          description: Redirect to the app, with `?login=failed` if the login didn't complete
+          headers:
+            Location:
+              $ref: "#/components/headers/Location"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
 components:
   schemas:
@@ -95,7 +141,24 @@ components:
           type: string
           format: uri-reference
 
+  headers:
+    Location:
+      schema:
+        type: string
+        format: uri
+
   responses:
+    BadRequest:
+      description: The request doesn't match the contract
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            title: Bad Request
+            status: 400
+            detail: "Unknown query parameter 'unexpected'"
+
     Unauthorized:
       description: No valid session
       content:

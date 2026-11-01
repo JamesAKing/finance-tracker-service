@@ -61,3 +61,47 @@ describe("health endpoints", () => {
     });
   });
 });
+
+describe("API contract", () => {
+  let server: Server;
+  let baseUrl: string;
+
+  before(() => {
+    server = createApp({ db, auth }).listen(0);
+    const { port } = server.address() as AddressInfo;
+    baseUrl = `http://localhost:${port}`;
+  });
+
+  after(() => {
+    server.close();
+  });
+
+  it("rejects a query parameter the spec doesn't declare", async () => {
+    const res = await fetch(`${baseUrl}/api/health?unexpected=1`);
+
+    assert.equal(res.status, 400);
+    assert.equal(res.headers.get("content-type"), "application/problem+json; charset=utf-8");
+    const body = (await res.json()) as { title: string; status: number };
+    assert.equal(body.title, "Bad Request");
+    assert.equal(body.status, 400);
+  });
+
+  it("returns 404 for a route the spec doesn't describe", async () => {
+    const res = await fetch(`${baseUrl}/api/not-a-route`);
+
+    assert.equal(res.status, 404);
+    assert.deepEqual(await res.json(), {
+      title: "Not Found",
+      status: 404,
+      detail: "not found",
+    });
+  });
+
+  it("returns 405 for a method the spec doesn't describe", async () => {
+    const res = await fetch(`${baseUrl}/api/health`, { method: "POST" });
+
+    assert.equal(res.status, 405);
+    const body = (await res.json()) as { title: string };
+    assert.equal(body.title, "Method Not Allowed");
+  });
+});
