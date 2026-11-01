@@ -1,9 +1,10 @@
-import { sql } from "drizzle-orm";
 import cookieParser from "cookie-parser";
+import { sql } from "drizzle-orm";
 import express from "express";
 import { enforceApiContract, sendProblem } from "./api-contract.ts";
 import type { Database } from "./db/db.ts";
 import { type AuthRouterOptions, createAuthRouter } from "./features/auth/routes.ts";
+import { setSecureHeaders } from "./security-headers.ts";
 
 type CreateAppOptions = {
   db: Database;
@@ -13,6 +14,9 @@ type CreateAppOptions = {
 export default function createApp({ db, auth }: CreateAppOptions) {
   const app = express();
 
+  app.disable("x-powered-by");
+
+  app.use(setSecureHeaders);
   app.use(cookieParser());
   app.use(enforceApiContract());
 

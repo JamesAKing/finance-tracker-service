@@ -86,6 +86,20 @@ describe("API contract", () => {
     assert.equal(body.status, 400);
   });
 
+  it("sets the security headers on a response the validator rejects", async () => {
+    const res = await fetch(`${baseUrl}/api/not-a-route`);
+
+    assert.equal(res.status, 404);
+    assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(res.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(
+      res.headers.get("content-security-policy"),
+      "default-src 'none'; frame-ancestors 'none'",
+    );
+    assert.equal(res.headers.get("cross-origin-resource-policy"), "same-origin");
+    assert.equal(res.headers.get("x-powered-by"), null);
+  });
+
   it("returns 404 for a route the spec doesn't describe", async () => {
     const res = await fetch(`${baseUrl}/api/not-a-route`);
 
