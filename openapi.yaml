@@ -10,10 +10,69 @@ info:
 servers:
   - url: /api
 
-paths: {}
+tags:
+  - name: health
+    description: Liveness and readiness checks for Docker, load balancers and monitors
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check the service is running
+      tags: [health]
+      security: []
+      responses:
+        "200":
+          description: The process is up. Does not check dependencies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Liveness"
+
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Check the service can handle requests
+      tags: [health]
+      security: []
+      responses:
+        "200":
+          description: The database is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+              example:
+                status: ready
+        "503":
+          description: The database is unreachable. Details are logged, not returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+              example:
+                status: unavailable
 
 components:
   schemas:
+    Liveness:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+
+    Readiness:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready, unavailable]
+
     Problem:
       type: object
       description: RFC 9457 Problem Details
