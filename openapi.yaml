@@ -138,6 +138,31 @@ paths:
               $ref: "#/components/headers/Location"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /auth/csrf:
+    get:
+      operationId: getCsrfToken
+      summary: Get a CSRF token
+      description:
+        Call before any POST, PUT, PATCH or DELETE and send the token in the X-CSRF-Token header
+        (or the _csrf form field for logout). Returns the existing token when the browser already
+        has one, so open tabs share it. Sign-in and sign-out clear it, so fetch a new one after
+        either.
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description:
+            The CSRF token. Also sets it in the HttpOnly __Host-csrf cookie the server checks it
+            against
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsrfToken"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
 components:
   securitySchemes:
@@ -156,6 +181,14 @@ components:
         email:
           type: string
           format: email
+
+    CsrfToken:
+      type: object
+      additionalProperties: false
+      required: [csrfToken]
+      properties:
+        csrfToken:
+          type: string
 
     Liveness:
       type: object
@@ -225,3 +258,14 @@ components:
             title: Unauthorized
             status: 401
             detail: Not authenticated
+
+    Forbidden:
+      description: The CSRF token is missing or doesn't match
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            title: Forbidden
+            status: 403
+            detail: Invalid CSRF token

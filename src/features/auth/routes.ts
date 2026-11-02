@@ -1,7 +1,10 @@
+import { randomBytes } from "node:crypto";
+
 import express from "express";
 import * as client from "openid-client";
 import { z } from "zod";
 
+import { CSRF_COOKIE, csrfCookieOptions } from "../../middleware/require-csrf.ts";
 import type { AuthFlow, CodeExchange, OidcClient } from "./oidc.ts";
 import { createRequireAuth, currentUser, SESSION_COOKIE } from "./require-auth.ts";
 import type { SessionRepository } from "./session-repository.ts";
@@ -9,8 +12,6 @@ import type { UserRepository } from "./user-repository.ts";
 
 export const AUTH_FLOW_COOKIE = "auth_flow";
 const AUTH_FLOW_MAX_AGE_MS = 10 * 60 * 1000;
-
-export { SESSION_COOKIE };
 
 const authFlowSchema = z.object({
   state: z.string(),
@@ -112,6 +113,7 @@ export function createAuthRouter({
         ...sessionCookieOptions,
         expires: expiresAt,
       });
+      res.clearCookie(CSRF_COOKIE, csrfCookieOptions);
       res.redirect(new URL("/", webOrigin).href);
     } catch (error) {
       console.error("Login callback failed", error);
@@ -133,6 +135,7 @@ export function createAuthRouter({
     }
 
     res.clearCookie(SESSION_COOKIE, sessionCookieOptions);
+    res.clearCookie(CSRF_COOKIE, csrfCookieOptions);
 
     const endSessionUrl =
       typeof idToken === "string"
@@ -143,6 +146,22 @@ export function createAuthRouter({
         : new URL("/", webOrigin);
 
     res.redirect(endSessionUrl.href);
+  });
+
+  router.get("/csrf", (req, res) => {
+    const possibleCsrfToken: unknown = req.cookies[CSRF_COOKIE];
+
+    const csrfToken =
+      typeof possibleCsrfToken === "string" && possibleCsrfToken.length !== 0
+        ? possibleCsrfToken
+        : randomBytes(32).toString("base64url");
+
+    res.cookie(CSRF_COOKIE, csrfToken, csrfCookieOptions);
+
+    res.set("Cache-Control", "no-store");
+    res.json({
+      csrfToken,
+    });
   });
 
   return router;

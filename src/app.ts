@@ -5,6 +5,7 @@ import express from "express";
 import { enforceApiContract, problemHandlers } from "./api-contract.ts";
 import type { Database } from "./db/db.ts";
 import { type AuthRouterOptions, createAuthRouter } from "./features/auth/routes.ts";
+import { requireCsrf } from "./middleware/require-csrf.ts";
 import { setSecureHeaders } from "./security-headers.ts";
 
 type CreateAppOptions = {
@@ -20,6 +21,7 @@ export default function createApp({ db, auth }: CreateAppOptions) {
   app.use(setSecureHeaders);
   app.use(cookieParser());
   app.use(enforceApiContract());
+  app.use(requireCsrf);
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
