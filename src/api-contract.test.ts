@@ -5,7 +5,7 @@ import { after, before, describe, it, mock } from "node:test";
 
 import express from "express";
 
-import { enforceApiContract, sendProblem } from "./api-contract.ts";
+import { enforceApiContract, HttpError, problemHandlers } from "./api-contract.ts";
 
 const spec = {
   openapi: "3.0.3",
@@ -28,6 +28,23 @@ const spec = {
               },
             },
           },
+          "404": {
+            description: "No thing",
+            content: {
+              "application/problem+json": {
+                schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: ["title", "status"],
+                  properties: {
+                    title: { type: "string" },
+                    status: { type: "integer" },
+                    detail: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -37,15 +54,17 @@ const spec = {
 describe("enforceApiContract", () => {
   let server: Server;
   let baseUrl: string;
-  const handler = mock.fn((_req: express.Request, res: express.Response) => {
-    res.json({ name: "ok" });
-  });
+  const handler = mock.fn(
+    (_req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      res.json({ name: "ok" });
+    },
+  );
 
   before(() => {
     const app = express();
     app.use(enforceApiContract(spec));
     app.get("/api/thing", handler);
-    app.use(sendProblem);
+    app.use(problemHandlers);
     server = app.listen(0);
     const { port } = server.address() as AddressInfo;
     baseUrl = `http://localhost:${port}`;
@@ -66,6 +85,35 @@ describe("enforceApiContract", () => {
     t.mock.method(console, "error", () => {});
     handler.mock.mockImplementationOnce((_req, res) => {
       res.json({ name: "ok", passwordHash: "leaked" });
+    });
+
+    const res = await fetch(`${baseUrl}/api/thing`);
+
+    assert.equal(res.status, 500);
+    assert.equal(res.headers.get("content-type"), "application/problem+json; charset=utf-8");
+    assert.deepEqual(await res.json(), { title: "Internal Server Error", status: 500 });
+  });
+
+  it("sends an error status the spec declares as a Problem", async () => {
+    handler.mock.mockImplementationOnce((_req, _res, next) => {
+      next(new HttpError(404, "No such thing"));
+    });
+
+    const res = await fetch(`${baseUrl}/api/thing`);
+
+    assert.equal(res.status, 404);
+    assert.equal(res.headers.get("content-type"), "application/problem+json; charset=utf-8");
+    assert.deepEqual(await res.json(), {
+      title: "Not Found",
+      status: 404,
+      detail: "No such thing",
+    });
+  });
+
+  it("turns an error status the spec doesn't declare into a 500 Problem", async (t) => {
+    t.mock.method(console, "error", () => {});
+    handler.mock.mockImplementationOnce((_req, _res, next) => {
+      next(new HttpError(403, "Not declared"));
     });
 
     const res = await fetch(`${baseUrl}/api/thing`);

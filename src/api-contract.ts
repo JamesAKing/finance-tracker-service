@@ -40,5 +40,7 @@ export const sendProblem: ErrorRequestHandler = (error: unknown, _req, res, _nex
   res
     .status(status)
     .type("application/problem+json")
-    .send(JSON.stringify({ title: STATUS_CODES[status] ?? "Error", status, detail }));
+    .json({ title: STATUS_CODES[status] ?? "Error", status, detail });
 };
+
+export const problemHandlers: ErrorRequestHandler[] = [sendProblem, sendProblem];

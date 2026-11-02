@@ -2,7 +2,7 @@ import cookieParser from "cookie-parser";
 import { sql } from "drizzle-orm";
 import express from "express";
 
-import { enforceApiContract, sendProblem } from "./api-contract.ts";
+import { enforceApiContract, problemHandlers } from "./api-contract.ts";
 import type { Database } from "./db/db.ts";
 import { type AuthRouterOptions, createAuthRouter } from "./features/auth/routes.ts";
 import { setSecureHeaders } from "./security-headers.ts";
@@ -36,7 +36,7 @@ export default function createApp({ db, auth }: CreateAppOptions) {
 
   app.use("/api/auth", createAuthRouter(auth));
 
-  app.use(sendProblem);
+  app.use(problemHandlers);
 
   return app;
 }
