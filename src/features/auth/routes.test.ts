@@ -6,9 +6,11 @@ import { after, afterEach, before, beforeEach, describe, it, mock } from "node:t
 import cookieParser from "cookie-parser";
 import express from "express";
 import { sendProblem } from "../../api-contract.ts";
+import { CSRF_COOKIE } from "../../middleware/require-csrf.ts";
 import { ACTIVE_SESSION_TOKEN, createFakeAuth, FAKE_LOGIN } from "./auth.fake.ts";
 import type { AuthFlow } from "./oidc.ts";
-import { AUTH_FLOW_COOKIE, createAuthRouter, SESSION_COOKIE } from "./routes.ts";
+import { SESSION_COOKIE } from "./require-auth.ts";
+import { AUTH_FLOW_COOKIE, createAuthRouter } from "./routes.ts";
 
 const fake = createFakeAuth();
 const { callbackUrl, webOrigin } = fake.options;
@@ -45,6 +47,15 @@ function readFlowCookie(res: Response) {
   const [pair = "", ...attributes] = header.split("; ");
   const value = decodeURIComponent(pair.slice(AUTH_FLOW_COOKIE.length + 1));
   return { pair, flow: JSON.parse(value) as AuthFlow, attributes };
+}
+
+function assertCsrfCookieCleared(res: Response) {
+  const header = findSetCookie(res, CSRF_COOKIE);
+  assert.ok(header, "csrf cookie was not cleared");
+  assert.match(header, /^__Host-csrf=;/);
+  assert.match(header, /Path=\/;/);
+  assert.match(header, /Expires=Thu, 01 Jan 1970/);
+  assert.match(header, /SameSite=Strict/);
 }
 
 describe("GET /api/auth/login", () => {
@@ -164,6 +175,12 @@ describe("GET /api/auth/callback", () => {
     assert.ok(header?.includes("Path=/api/auth/callback"));
   });
 
+  it("clears the CSRF cookie so the signed-in session gets a fresh token", async () => {
+    const { res } = await getCallback();
+
+    assertCsrfCookieCleared(res);
+  });
+
   it("deletes the session the browser arrived with (session fixation)", async () => {
     await getCallback({ cookies: [`${SESSION_COOKIE}=old-session-token`] });
 
@@ -281,5 +298,58 @@ describe("POST /api/auth/logout", () => {
     assert.equal(res.headers.get("location"), new URL("/", webOrigin).href);
     assert.equal(fake.endSession.mock.callCount(), 0);
     assertSessionCookieCleared(res);
+  });
+
+  it("clears the CSRF cookie so the next visitor gets a fresh token", async () => {
+    const res = await postLogout(`${SESSION_COOKIE}=${ACTIVE_SESSION_TOKEN}`);
+
+    assertCsrfCookieCleared(res);
+  });
+});
+
+describe("GET /api/auth/csrf", () => {
+  function getCsrf(cookie?: string) {
+    return fetch(`${baseUrl}/api/auth/csrf`, cookie ? { headers: { cookie } } : {});
+  }
+
+  async function readCsrf(res: Response) {
+    const header = findSetCookie(res, CSRF_COOKIE);
+    assert.ok(header, "csrf cookie was not set");
+
+    const [pair = "", ...attributes] = header.split("; ");
+    const { csrfToken } = (await res.json()) as { csrfToken: string };
+    return { cookieToken: pair.slice(CSRF_COOKIE.length + 1), csrfToken, attributes };
+  }
+
+  it("mints a token and sets it in a strict, HttpOnly browser-session cookie when there is none", async () => {
+    const res = await getCsrf();
+
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("cache-control"), "no-store");
+
+    const { cookieToken, csrfToken, attributes } = await readCsrf(res);
+    assert.equal(Buffer.from(csrfToken, "base64url").length, 32);
+    assert.equal(cookieToken, csrfToken);
+    assert.ok(attributes.includes("HttpOnly"));
+    assert.ok(attributes.includes("Secure"));
+    assert.ok(attributes.includes("SameSite=Strict"));
+    assert.ok(attributes.includes("Path=/"));
+    assert.ok(!attributes.some((a) => a.startsWith("Expires=") || a.startsWith("Max-Age=")));
+  });
+
+  it("returns the existing token so open tabs share it", async () => {
+    const res = await getCsrf(`${CSRF_COOKIE}=existing-token`);
+
+    const { cookieToken, csrfToken } = await readCsrf(res);
+    assert.equal(csrfToken, "existing-token");
+    assert.equal(cookieToken, "existing-token");
+  });
+
+  it("mints a new token when the cookie is empty", async () => {
+    const res = await getCsrf(`${CSRF_COOKIE}=`);
+
+    const { cookieToken, csrfToken } = await readCsrf(res);
+    assert.equal(Buffer.from(csrfToken, "base64url").length, 32);
+    assert.equal(cookieToken, csrfToken);
   });
 });

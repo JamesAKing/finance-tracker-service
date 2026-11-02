@@ -5,6 +5,7 @@ import { after, before, beforeEach, describe, it, mock } from "node:test";
 import createApp from "./app.ts";
 import type { Database } from "./db/db.ts";
 import { createFakeAuth } from "./features/auth/auth.fake.ts";
+import { CSRF_COOKIE } from "./middleware/require-csrf.ts";
 
 const execute = mock.fn(async () => []);
 const db = { execute } as unknown as Database;
@@ -109,6 +110,28 @@ describe("API contract", () => {
       status: 404,
       detail: "not found",
     });
+  });
+
+  it("rejects a state-changing request without a CSRF token", async () => {
+    const res = await fetch(`${baseUrl}/api/auth/logout`, { method: "POST", redirect: "manual" });
+
+    assert.equal(res.status, 403);
+    assert.equal(res.headers.get("content-type"), "application/problem+json; charset=utf-8");
+    assert.deepEqual(await res.json(), {
+      title: "Forbidden",
+      status: 403,
+      detail: "Invalid CSRF token",
+    });
+  });
+
+  it("lets a state-changing request through with a matching CSRF token", async () => {
+    const res = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { cookie: `${CSRF_COOKIE}=the-token`, "x-csrf-token": "the-token" },
+    });
+
+    assert.equal(res.status, 302);
   });
 
   it("returns 405 for a method the spec doesn't describe", async () => {
