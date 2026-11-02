@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
+
 import type { RequestHandler } from "express";
+
 import { HttpError } from "../api-contract.ts";
 
 const SAFE_METHODS = ["GET", "HEAD", "OPTIONS"];

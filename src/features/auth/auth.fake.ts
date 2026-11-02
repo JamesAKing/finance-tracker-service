@@ -1,5 +1,7 @@
 import { mock } from "node:test";
+
 import * as client from "openid-client";
+
 import type { CodeExchange, LoginResult } from "./oidc.ts";
 import type { AuthRouterOptions } from "./routes.ts";
 import type { SessionRepository } from "./session-repository.ts";
