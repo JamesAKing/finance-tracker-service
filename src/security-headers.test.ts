@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
+
 import type { Request, Response } from "express";
+
 import { setSecureHeaders } from "./security-headers.ts";
 
 describe("setSecureHeaders", () => {
