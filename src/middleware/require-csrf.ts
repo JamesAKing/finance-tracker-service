@@ -24,15 +24,18 @@ export const requireCsrf: RequestHandler = (req, _res, next) => {
 
   const cookieToken: unknown = req.cookies[CSRF_COOKIE];
   const headerToken: unknown = req.header("X-CSRF-Token");
+  // Logout is a browser form post, so it cannot set a header. Use the form field instead.
+  const bodyToken: unknown = (req.body as { _csrf?: unknown } | undefined)?._csrf;
+  const requestToken = headerToken ?? bodyToken;
   const invalid = new HttpError(403, "Invalid CSRF token");
 
-  if (!isToken(cookieToken) || !isToken(headerToken)) return next(invalid);
+  if (!isToken(cookieToken) || !isToken(requestToken)) return next(invalid);
 
   const cookieBytes = Buffer.from(cookieToken);
-  const headerBytes = Buffer.from(headerToken);
+  const requestBytes = Buffer.from(requestToken);
 
-  if (cookieBytes.length !== headerBytes.length) return next(invalid);
-  if (!timingSafeEqual(cookieBytes, headerBytes)) return next(invalid);
+  if (cookieBytes.length !== requestBytes.length) return next(invalid);
+  if (!timingSafeEqual(cookieBytes, requestBytes)) return next(invalid);
 
   next();
 };

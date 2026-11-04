@@ -135,6 +135,34 @@ describe("API contract", () => {
     assert.equal(res.status, 302);
   });
 
+  it("accepts the CSRF token as a form field on logout", async () => {
+    const res = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        cookie: `${CSRF_COOKIE}=the-token`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ _csrf: "the-token" }),
+    });
+
+    assert.equal(res.status, 302);
+  });
+
+  it("rejects an incorrect CSRF form field on logout", async () => {
+    const res = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        cookie: `${CSRF_COOKIE}=the-token`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ _csrf: "not-token" }),
+    });
+
+    assert.equal(res.status, 403);
+  });
+
   it("returns 405 for a method the spec doesn't describe", async () => {
     const res = await fetch(`${baseUrl}/api/health`, { method: "POST" });
 
