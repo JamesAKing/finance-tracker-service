@@ -20,6 +20,7 @@ export default function createApp({ db, auth }: CreateAppOptions) {
 
   app.use(setSecureHeaders);
   app.use(cookieParser());
+  app.use("/api/auth/logout", express.urlencoded({ extended: false }));
   app.use(enforceApiContract());
   app.use(requireCsrf);
 

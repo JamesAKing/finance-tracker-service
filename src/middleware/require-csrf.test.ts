@@ -10,15 +10,18 @@ function runRequireCsrf({
   method = "POST",
   cookie,
   header,
+  body,
 }: {
   method?: string;
   cookie?: string | undefined;
   header?: string | undefined;
+  body?: unknown;
 }) {
   const next = mock.fn();
   const req = {
     method,
     cookies: cookie === undefined ? {} : { [CSRF_COOKIE]: cookie },
+    body,
     header: (name: string) => (name === "X-CSRF-Token" ? header : undefined),
   } as unknown as Request;
 
@@ -43,6 +46,24 @@ describe("requireCsrf", () => {
 
   it("lets a request through when the header matches the cookie", () => {
     assert.equal(runRequireCsrf({ cookie: "the-token", header: "the-token" }), undefined);
+  });
+
+  it("lets a request through when the form field matches the cookie", () => {
+    assert.equal(runRequireCsrf({ cookie: "the-token", body: { _csrf: "the-token" } }), undefined);
+  });
+
+  it("rejects a POST when the form field is wrong", () => {
+    assertRejected(runRequireCsrf({ cookie: "the-token", body: { _csrf: "not-token" } }));
+  });
+
+  it("uses the header before the form field", () => {
+    assert.equal(
+      runRequireCsrf({ cookie: "the-token", header: "the-token", body: { _csrf: "not-token" } }),
+      undefined,
+    );
+    assertRejected(
+      runRequireCsrf({ cookie: "the-token", header: "not-token", body: { _csrf: "the-token" } }),
+    );
   });
 
   for (const [name, cookie, header] of [

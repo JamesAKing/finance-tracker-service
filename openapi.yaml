@@ -128,6 +128,18 @@ paths:
         session cookie. Always succeeds, with or without a session.
       tags: [auth]
       security: []
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                _csrf:
+                  type: string
+                  description:
+                    The CSRF token, when the form cannot send the X-CSRF-Token header. Not marked as
+                    required here, so a missing token gives 403, not 400
       responses:
         "302":
           description:
