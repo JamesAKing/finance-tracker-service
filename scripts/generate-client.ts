@@ -1,14 +1,20 @@
 // Generates the web client's API code from openapi.yaml, using OpenAPI Generator's Docker image
-// so nobody needs Java installed. Usage: npm run generate:client [-- <output dir>]
+// so nobody needs Java installed. Usage: npm run generate:client -- <output dir>
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const GENERATOR_IMAGE = "openapitools/openapi-generator-cli:v7.26.0";
-const DEFAULT_OUTPUT_DIR = "../finance-tracker-web/src/api/generated";
 
 const repoDir = resolve(import.meta.dirname, "..");
-const outputDir = resolve(process.argv[2] ?? DEFAULT_OUTPUT_DIR);
+const outputArg = process.argv[2];
+
+if (!outputArg) {
+  console.error("Missing output directory. Usage: npm run generate:client -- <output dir>");
+  process.exit(1);
+}
+
+const outputDir = resolve(outputArg);
 
 if (!existsSync(resolve(outputDir, ".."))) {
   console.error(`Output directory's parent does not exist: ${outputDir}`);
