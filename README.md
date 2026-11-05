@@ -88,27 +88,31 @@ is validated against it at runtime (`src/api-contract.ts`), and CI lints it with
 To regenerate the web client's API code after changing the spec:
 
 ```bash
-npm run generate:client -- ../client/src/api/generated
+npm run generate:client -- ../finance-tracker-web/src/api/generated
 ```
 
-The generator (OpenAPI Generator, `typescript-fetch`) runs on Java, so you need a JRE
-(17+) installed. Its version is pinned in `openapitools.json`. Never edit the generated
-files: change the spec and regenerate.
+The output directory is required, because the service can't know where the web repo is
+cloned. The example assumes both repos are cloned side by side.
+
+The generator ([OpenAPI Generator](https://openapi-generator.tech), `typescript-fetch`) is a
+Java program, so `scripts/generate-client.ts` runs its official Docker image instead of
+needing Java installed. You only need Docker running. The image version is pinned in that
+script. Never edit the generated files: change the spec and regenerate.
 
 ## Scripts
 
-| Script                             | What it does                                                                     |
-| ---------------------------------- | -------------------------------------------------------------------------------- |
-| `npm run dev`                      | Run the service with file watching, loading `.env`                               |
-| `npm test`                         | Run the tests (no database needed)                                               |
-| `npm run lint:api`                 | Lint `openapi.yaml` with Redocly                                                 |
-| `npm run generate:client -- <dir>` | Generate a TypeScript fetch client from `openapi.yaml` into `<dir>` (needs Java) |
-| `npm run lint`                     | Lint with oxlint                                                                 |
-| `npm run fmt`                      | Format with oxfmt                                                                |
-| `npm run build`                    | Compile TypeScript to `dist/`                                                    |
-| `npm run db:up`                    | Start Postgres in the background                                                 |
-| `npm run db:down`                  | Stop and remove the containers (data is kept in the volume)                      |
-| `npm run db:migrate`               | Apply Liquibase changesets, then regenerate the Drizzle schema                   |
+| Script                             | What it does                                                                       |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| `npm run dev`                      | Run the service with file watching, loading `.env`                                 |
+| `npm test`                         | Run the tests (no database needed)                                                 |
+| `npm run lint:api`                 | Lint `openapi.yaml` with Redocly                                                   |
+| `npm run generate:client -- <dir>` | Generate a TypeScript fetch client from `openapi.yaml` into `<dir>` (needs Docker) |
+| `npm run lint`                     | Lint with oxlint                                                                   |
+| `npm run fmt`                      | Format with oxfmt                                                                  |
+| `npm run build`                    | Compile TypeScript to `dist/`                                                      |
+| `npm run db:up`                    | Start Postgres in the background                                                   |
+| `npm run db:down`                  | Stop and remove the containers (data is kept in the volume)                        |
+| `npm run db:migrate`               | Apply Liquibase changesets, then regenerate the Drizzle schema                     |
 
 ## Database
 
