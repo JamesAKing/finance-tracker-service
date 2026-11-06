@@ -1,7 +1,6 @@
 import cookieParser from "cookie-parser";
 import { sql } from "drizzle-orm";
 import express from "express";
-
 import { enforceApiContract, problemHandlers } from "./api-contract.ts";
 import type { Database } from "./db/db.ts";
 import { type AuthRouterOptions, createAuthRouter } from "./features/auth/routes.ts";

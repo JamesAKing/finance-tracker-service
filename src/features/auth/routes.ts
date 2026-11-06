@@ -1,9 +1,7 @@
 import { randomBytes } from "node:crypto";
-
 import express from "express";
 import * as client from "openid-client";
 import { z } from "zod";
-
 import { CSRF_COOKIE, csrfCookieOptions } from "../../middleware/require-csrf.ts";
 import type { AuthFlow, CodeExchange, OidcClient } from "./oidc.ts";
 import { createRequireAuth, currentUser, SESSION_COOKIE } from "./require-auth.ts";
