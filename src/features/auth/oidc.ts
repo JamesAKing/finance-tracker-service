@@ -1,5 +1,4 @@
 import * as client from "openid-client";
-
 import type { Config } from "../../config.ts";
 import type { UserIdentity } from "./user-repository.ts";
 

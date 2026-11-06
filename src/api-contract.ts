@@ -1,6 +1,5 @@
 import { STATUS_CODES } from "node:http";
 import { fileURLToPath } from "node:url";
-
 import type { ErrorRequestHandler } from "express";
 import * as OpenApiValidator from "express-openapi-validator";
 

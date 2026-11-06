@@ -3,10 +3,8 @@ import { createHash } from "node:crypto";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, afterEach, before, beforeEach, describe, it, mock } from "node:test";
-
 import cookieParser from "cookie-parser";
 import express from "express";
-
 import { sendProblem } from "../../api-contract.ts";
 import { CSRF_COOKIE } from "../../middleware/require-csrf.ts";
 import { ACTIVE_SESSION_TOKEN, createFakeAuth, FAKE_LOGIN } from "./auth.fake.ts";

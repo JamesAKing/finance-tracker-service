@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-
 import { relations } from "./relations.ts";
 
 // Nothing connects on import; the pool is created when this is called

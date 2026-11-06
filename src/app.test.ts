@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, beforeEach, describe, it, mock } from "node:test";
-
 import createApp from "./app.ts";
 import type { Database } from "./db/db.ts";
 import { createFakeAuth } from "./features/auth/auth.fake.ts";
