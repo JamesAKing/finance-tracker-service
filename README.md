@@ -100,7 +100,7 @@ running. There is no `latest` tag.
 
 ### Service image
 
-- Runs as the `node` user, not root.
+- Runs as the `node` user (ID 1000), not root.
 - Has no `npm`. It is only needed to build, and it adds known vulnerabilities.
 - Health check: `GET /api/health/ready` every 10 seconds. The container is unhealthy when
   the database can't be reached.
