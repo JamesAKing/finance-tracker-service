@@ -31,6 +31,11 @@ Express 5 + TypeScript API, backed by Postgres. Schema changes are managed with 
    missing or invalid, the service exits and lists every problem. Nothing else reads
    `process.env`.
 
+   Any variable can also be read from a file: set `<NAME>_FILE` to the file's path, for
+   example `OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc_client_secret`. This is how Docker
+   secrets reach the service in production. Set the variable or the `_FILE` variable, not
+   both.
+
 3. Start Postgres:
 
    ```bash
@@ -79,6 +84,60 @@ Inside the container, two values differ from `.env` (set in `docker-compose.yml`
   contain, but inside a container `localhost` is the container itself. The service sends
   its own requests to Keycloak (discovery, code exchange, keys) to the internal URL
   instead. Keycloak's `KC_HOSTNAME` keeps the issuer the same whichever address is used.
+
+## Container images
+
+CI builds two images, scans them, and on every merge to `master` pushes them to GitHub's
+container registry (GHCR) for amd64 and arm64:
+
+| Image                                                   | What it is                                               |
+| ------------------------------------------------------- | -------------------------------------------------------- |
+| `ghcr.io/jamesaking/finance-tracker-service`            | The service (`Dockerfile`)                               |
+| `ghcr.io/jamesaking/finance-tracker-service-migrations` | Liquibase with the changelog (`db/Dockerfile.liquibase`) |
+
+Each image is tagged with the full commit SHA, so you can always tell which commit is
+running. There is no `latest` tag.
+
+### Service image
+
+- Runs as the `node` user, not root.
+- Has no `npm`. It is only needed to build, and it adds known vulnerabilities.
+- Health check: `GET /api/health/ready` every 10 seconds. The container is unhealthy when
+  the database can't be reached.
+- On `SIGTERM` (for example `docker stop`), it stops taking new requests, finishes open ones,
+  closes the database pool and exits within 8 seconds.
+
+### Migrations image
+
+The changelog is inside the image, so a deploy can run migrations with only the
+connection settings:
+
+```bash
+docker run --rm \
+  -e LIQUIBASE_COMMAND_URL=jdbc:postgresql://<host>:5432/<db> \
+  -e LIQUIBASE_COMMAND_USERNAME=<user> \
+  -e LIQUIBASE_COMMAND_PASSWORD=<password> \
+  ghcr.io/jamesaking/finance-tracker-service-migrations:<sha>
+```
+
+It upgrades its OS packages at build time, and removes `lpm` (the Liquibase package tool)
+after installing the Postgres driver, to keep known vulnerabilities out.
+
+### CI checks
+
+`.github/workflows/ci.yml` runs on every PR and on `master`:
+
+- `check`: lint, API lint, format, type check, build, unit and integration tests.
+- `dockerfiles`: lints both Dockerfiles with hadolint.
+- `audit`: `npm audit` on production dependencies. Fails on high or critical issues.
+
+`.github/workflows/images.yml` builds both images on every PR and scans them with Trivy.
+It fails on high or critical vulnerabilities that have a fix. On `master` it also pushes
+them.
+
+All GitHub Actions are pinned to a commit SHA, so a changed tag can't change what runs.
+Dependabot (`.github/dependabot.yml`) opens weekly PRs to update npm packages, base images
+and actions.
 
 ## API contract
 
