@@ -9,7 +9,7 @@
 
 ## Writing
 
-- Use simple technical English in commit messages, pull request descriptions, READMEs and
-  other docs.
+- Use simple technical English in commit messages, pull request descriptions, READMEs, other
+  docs and chat replies.
 - Use short sentences and common words. Say what changed and why. Avoid jargon, idioms and
   long explanations.
