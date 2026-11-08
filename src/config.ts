@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -16,8 +17,31 @@ const envSchema = z.object({
 
 export type Config = ReturnType<typeof loadConfig>;
 
+const FILE_SUFFIX = "_FILE";
+
+export function readSecretFiles(env: NodeJS.ProcessEnv) {
+  const resolved: NodeJS.ProcessEnv = { ...env };
+
+  for (const name of Object.keys(envSchema.shape)) {
+    const path = env[`${name}${FILE_SUFFIX}`];
+    if (!path) continue;
+
+    if (env[name] !== undefined) {
+      throw new Error(`Invalid configuration: set ${name} or ${name}${FILE_SUFFIX}, not both`);
+    }
+
+    try {
+      resolved[name] = readFileSync(path, "utf8").trim();
+    } catch {
+      throw new Error(`Invalid configuration: could not read ${name}${FILE_SUFFIX} at ${path}`);
+    }
+  }
+
+  return resolved;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
-  const result = envSchema.safeParse(env);
+  const result = envSchema.safeParse(readSecretFiles(env));
   if (!result.success) {
     const problems = result.error.issues.map(
       (issue) => `  - ${issue.path.join(".")}: ${issue.message}`,

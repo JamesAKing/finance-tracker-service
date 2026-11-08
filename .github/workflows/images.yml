@@ -1,0 +1,73 @@
+name: Images
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: image (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: service
+            context: .
+            file: Dockerfile
+            image: ghcr.io/jamesaking/finance-tracker-service
+          - name: migrations
+            context: db
+            file: db/Dockerfile.liquibase
+            image: ghcr.io/jamesaking/finance-tracker-service-migrations
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+
+      - name: Build for scanning
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          load: true
+          tags: ${{ matrix.image }}:scan
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Scan for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ matrix.image }}:scan
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - if: github.event_name == 'push'
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+
+      - if: github.event_name == 'push'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push for amd64 and arm64
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ matrix.image }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.name }}

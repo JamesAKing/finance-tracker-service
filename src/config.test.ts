@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { loadConfig } from "./config.ts";
+
+function writeSecretFile(contents: string) {
+  const path = join(mkdtempSync(join(tmpdir(), "config-test-")), "secret");
+  writeFileSync(path, contents);
+  return path;
+}
 
 const validEnv = {
   DATABASE_URL: "postgres://postgres:password@localhost:5434/finance_tracker",
@@ -78,5 +87,34 @@ describe("loadConfig", () => {
         return true;
       },
     );
+  });
+
+  describe("secrets from files", () => {
+    it("reads a value from the file named by <NAME>_FILE", () => {
+      const { OIDC_CLIENT_SECRET: _, ...env } = validEnv;
+
+      const config = loadConfig({
+        ...env,
+        OIDC_CLIENT_SECRET_FILE: writeSecretFile("file-secret\n"),
+      });
+
+      assert.equal(config.oidc.clientSecret, "file-secret");
+    });
+
+    it("rejects a value set both directly and from a file", () => {
+      assert.throws(
+        () => loadConfig({ ...validEnv, OIDC_CLIENT_SECRET_FILE: writeSecretFile("x") }),
+        /set OIDC_CLIENT_SECRET or OIDC_CLIENT_SECRET_FILE, not both/,
+      );
+    });
+
+    it("reports a file that can't be read", () => {
+      const { DATABASE_URL: _, ...env } = validEnv;
+
+      assert.throws(
+        () => loadConfig({ ...env, DATABASE_URL_FILE: "/does/not/exist" }),
+        /could not read DATABASE_URL_FILE at \/does\/not\/exist/,
+      );
+    });
   });
 });

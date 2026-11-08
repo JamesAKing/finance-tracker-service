@@ -1,2 +1,8 @@
-FROM liquibase/liquibase:5.0.4
+FROM liquibase/liquibase:5.0.4-alpine
 RUN lpm add postgresql --global
+USER 0:0
+RUN apk upgrade --no-cache && rm /liquibase/bin/lpm /usr/local/bin/lpm
+USER 1001:1001
+COPY changelog /liquibase/changelog
+ENV LIQUIBASE_COMMAND_CHANGELOG_FILE=db.changelog-master.xml
+CMD ["update"]
