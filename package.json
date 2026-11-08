@@ -37,7 +37,7 @@
     "@redocly/cli": "^2.72.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^1.0.0-rc.5",
     "husky": "^9.1.7",
