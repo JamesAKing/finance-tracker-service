@@ -1,4 +1,4 @@
-FROM node:24.22.1-alpine3.24 AS build
+FROM node:26.13.0-alpine3.24 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
@@ -6,12 +6,12 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:24.22.1-alpine3.24 AS deps
+FROM node:26.13.0-alpine3.24 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
-FROM node:24.22.1-alpine3.24
+FROM node:26.13.0-alpine3.24
 ENV NODE_ENV=production
 RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 WORKDIR /app
